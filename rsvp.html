@@ -195,7 +195,7 @@ $('#next').addEventListener('click',async()=>{
   const payload={first:f.get('first'),last:f.get('last'),email:f.get('email'),attending:f.get('attendance'),guests:count,stay:yes?f.get('stay'):'',diet:f.get('diet'),message:f.get('message'),guests_list:list,accommodation:yes?Object.entries(A()).map(([id,names])=>({id,people:names.length,names})):[]};
   const ctl=new AbortController(),timer=setTimeout(()=>ctl.abort(),15000);
   let res;
-  try{res=await fetch(cfg.supabaseUrl.replace(/\/$/,'')+'/rest/v1/rpc/submit_rsvp',{method:'POST',signal:ctl.signal,headers:{'Content-Type':'application/json',apikey:cfg.anonKey,Authorization:'Bearer '+cfg.anonKey},body:JSON.stringify({payload})});}
+  try{res=await fetch(cfg.supabaseUrl.replace(/\/$/,'')+'/rest/v1/rpc/submit_rsvp',{method:'POST',signal:ctl.signal,headers:Object.assign({'Content-Type':'application/json',apikey:cfg.anonKey},cfg.anonKey.startsWith('eyJ')?{Authorization:'Bearer '+cfg.anonKey}:{}),body:JSON.stringify({payload})});}
   finally{clearTimeout(timer)}
   if(!res.ok)throw new Error('Submission failed ('+res.status+').');
   complete(true);

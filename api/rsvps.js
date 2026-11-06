@@ -19,7 +19,11 @@ async function dbMessage(r) {
 
 module.exports = async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
-  const { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, ADMIN_PASSWORD } = process.env;
+  // Trim stray spaces/newlines/quotes that often sneak in when pasting env vars.
+  const clean = v => String(v || '').trim().replace(/^["']|["']$/g, '');
+  const SUPABASE_URL = clean(process.env.SUPABASE_URL);
+  const SUPABASE_SERVICE_ROLE_KEY = clean(process.env.SUPABASE_SERVICE_ROLE_KEY);
+  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY || !ADMIN_PASSWORD) {
     return res.status(500).json({ error: 'Dashboard is not configured (missing environment variables).' });
   }
@@ -29,7 +33,9 @@ module.exports = async (req, res) => {
     await new Promise(r => setTimeout(r, 800)); // slow down guessing
     return res.status(401).json({ error: 'Wrong password.' });
   }
-  const H = { apikey: SUPABASE_SERVICE_ROLE_KEY, Authorization: 'Bearer ' + SUPABASE_SERVICE_ROLE_KEY, 'Content-Type': 'application/json' };
+  // Legacy keys are JWTs (eyJ...) and go in both headers; new-style keys (sb_secret_...) are not JWTs and go in apikey only.
+  const H = { apikey: SUPABASE_SERVICE_ROLE_KEY, 'Content-Type': 'application/json' };
+  if (SUPABASE_SERVICE_ROLE_KEY.startsWith('eyJ')) H.Authorization = 'Bearer ' + SUPABASE_SERVICE_ROLE_KEY;
   const base = SUPABASE_URL.replace(/\/$/, '') + '/rest/v1/rsvps';
   // Mark an RSVP paid / unpaid: { action:'set_paid', id, paid, amount?, note? }
   if (body.action === 'set_paid') {

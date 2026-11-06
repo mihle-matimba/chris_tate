@@ -7,8 +7,8 @@ module.exports = (req, res) => {
   res.status(200).send(
     'window.RSVP_CONFIG=' +
       JSON.stringify({
-        supabaseUrl: process.env.SUPABASE_URL || '',
-        anonKey: process.env.SUPABASE_ANON_KEY || '',
+        supabaseUrl: String(process.env.SUPABASE_URL || '').trim(),
+        anonKey: String(process.env.SUPABASE_ANON_KEY || '').trim(),
       }) +
       ';'
   );
