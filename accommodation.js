@@ -28,6 +28,22 @@
     number: '63012534889',
     branch: '252445',
     branchName: 'Menlyn Maine',
-    swift: 'FIRNZAJJ'
+    swift: 'FIRNZAJJ',
+    pdf: 'https://pehrklnvmjwsuyjyjtjq.supabase.co/storage/v1/object/public/Wedding%20Pictures/c29eb76b2ee3f3a8a8626f881759a621.pdf'
   };
+  // Plain-text bank details for the "copy" buttons. reference/amount are optional.
+  window.bankText = function (reference, amount) {
+    var b = window.BANK;
+    return ['Bank: ' + b.bank, 'Account holder: ' + b.holder, 'Account type: ' + b.type, 'Account number: ' + b.number,
+      'Branch: ' + b.branchName + ' (' + b.branch + ')', 'Swift: ' + b.swift]
+      .concat(amount ? ['Amount: ' + amount] : [], reference ? ['Reference: ' + reference] : []).join('\n');
+  };
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest && e.target.closest('[data-copy-bank]');
+    if (!btn) return;
+    var text = window.bankText(btn.dataset.ref || '', btn.dataset.amount || '');
+    var done = function () { var o = btn.textContent; btn.textContent = 'Copied ✓'; setTimeout(function () { btn.textContent = o; }, 1800); };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, fallback); else fallback();
+    function fallback() { var t = document.createElement('textarea'); t.value = text; document.body.appendChild(t); t.select(); try { document.execCommand('copy'); done(); } catch (x) {} t.remove(); }
+  });
 })();

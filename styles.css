@@ -58,3 +58,4 @@
 .friday-card .schedule{grid-template-rows:repeat(2,auto)}
 .schedule-note{margin:18px 0 0!important;padding-top:14px;border-top:1px solid var(--line);font-style:italic}
 @media(max-width:900px){.friday-card .schedule{grid-template-rows:none}}
+.bank-actions{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:22px}.btn-line{font:inherit;font-size:12px;letter-spacing:.08em;text-transform:uppercase;text-decoration:none;color:var(--ink);background:transparent;border:1px solid var(--taupe);padding:12px 20px;cursor:pointer}.btn-line:hover{background:var(--ink);color:#fff}

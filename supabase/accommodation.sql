@@ -68,7 +68,7 @@ begin
       v_people := v_people + p;
       v_total  := v_total + rr.rate * p * v_nights;
       v_names  := v_names || rr.short;
-      v_acc    := v_acc || jsonb_build_array(jsonb_build_object('id', rr.id, 'people', p));
+      v_acc    := v_acc || jsonb_build_array(jsonb_build_object('id', rr.id, 'people', p, 'names', coalesce((select jsonb_agg(left(n, 80)) from jsonb_array_elements_text(case when jsonb_typeof(item->'names') = 'array' then item->'names' else '[]'::jsonb end) n), '[]'::jsonb)));
     end loop;
     if jsonb_array_length(v_acc) = 0 then raise exception 'accommodation required'; end if;
     if v_people <> v_count then raise exception 'rooms must cover every guest'; end if;
@@ -95,3 +95,10 @@ $$;
 
 revoke all on function public.submit_rsvp(jsonb) from public;
 grant execute on function public.submit_rsvp(jsonb) to anon;
+
+-- ===== Payment tracking + per-guest room names (added later; safe to re-run) =====
+alter table public.rsvps
+  add column if not exists paid        boolean not null default false,
+  add column if not exists paid_amount int,
+  add column if not exists paid_at     timestamptz,
+  add column if not exists pay_note    text;
