@@ -18,8 +18,9 @@ small{color:var(--soft)}
 <div style="display:flex;justify-content:space-between;align-items:end;flex-wrap:wrap;gap:10px"><div><h1>RSVP Dashboard</h1><span class="muted" id="upd"></span></div><div class="bar" style="margin:0"><button class="sec" id="refresh">Refresh</button><button class="sec" id="csv">Download CSV</button><button class="sec" id="out">Log out</button></div></div>
 <div class="stats" id="stats"></div>
 <div class="card"><div class="bar"><input id="q" placeholder="Search name, email, dietary…"><select id="fa"><option value="">All responses</option><option value="yes">Attending</option><option value="no">Declined</option></select><select id="fs"><option value="">Any stay</option><option value="both_nights">Both nights</option><option value="friday_only">Friday only</option></select></div>
-<div class="scroll"><table><thead><tr><th>Received</th><th>Name</th><th>Email</th><th>Response</th><th>Guests</th><th>Stay</th><th>Dietary</th><th>Message</th></tr></thead><tbody id="rows"></tbody></table></div><p class="muted" id="empty"></p></div>
+<div class="scroll"><table><thead><tr><th>Received</th><th>Name</th><th>Email</th><th>Response</th><th>Guests</th><th>Stay</th><th>Accommodation</th><th>Amount / reference</th><th>Dietary</th><th>Message</th></tr></thead><tbody id="rows"></tbody></table></div><p class="muted" id="empty"></p></div>
 </div></div>
+<script src="/accommodation.js"></script>
 <script>
 let pw=sessionStorage.getItem('rsvp-pw')||'',rows=[],timer;const $=s=>document.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -31,18 +32,19 @@ async function load(){
  rows=j.rows;$('#login').classList.add('hidden');$('#app').classList.remove('hidden');
  $('#upd').textContent='Updated '+new Date().toLocaleTimeString();render();
 }
+function roomsOf(r){return (r.accommodation||[]).map(a=>{const x=(window.ROOMS||[]).find(z=>z.id===a.id);return (x?x.group+' '+x.label:a.id)+' ×'+a.people}).join(', ')}
 function dietOf(r){const g=(r.guests||[]).filter(x=>x.diet).map(x=>x.first+': '+x.diet);return [r.diet,...g].filter(Boolean).join(' | ')}
 function render(){
  const yes=rows.filter(r=>r.attending),no=rows.filter(r=>!r.attending);
  const heads=yes.reduce((n,r)=>n+r.guest_count,0),both=yes.filter(r=>r.stay==='both_nights').reduce((n,r)=>n+r.guest_count,0),fri=yes.filter(r=>r.stay==='friday_only').reduce((n,r)=>n+r.guest_count,0);
- $('#stats').innerHTML=[['Responses',rows.length],['Attending (people)',heads],['Declined',no.length],['Both nights',both],['Friday only',fri],['With dietary notes',yes.filter(dietOf).length]].map(([a,b])=>`<div class="card stat"><b>${b}</b><span>${a}</span></div>`).join('');
+ $('#stats').innerHTML=[['Responses',rows.length],['Attending (people)',heads],['Declined',no.length],['Both nights',both],['Friday only',fri],['With dietary notes',yes.filter(dietOf).length],['Accommodation due','R'+yes.reduce((n,r)=>n+(r.total_amount||0),0).toLocaleString('en-ZA')]].map(([a,b])=>`<div class="card stat"><b>${b}</b><span>${a}</span></div>`).join('');
  const q=$('#q').value.toLowerCase(),fa=$('#fa').value,fs=$('#fs').value;
  const list=rows.filter(r=>(!fa||(fa==='yes')===r.attending)&&(!fs||r.stay===fs)&&(!q||[r.first_name,r.last_name,r.email,dietOf(r),r.message,...(r.guests||[]).map(g=>g.first+' '+g.last)].join(' ').toLowerCase().includes(q)));
- $('#rows').innerHTML=list.map(r=>`<tr><td>${new Date(r.created_at).toLocaleDateString()}${r.updated_at!==r.created_at?'<br><small>edited</small>':''}</td><td>${esc(r.first_name)} ${esc(r.last_name)}${(r.guests||[]).map(g=>`<br><small>+ ${esc(g.first)} ${esc(g.last)}</small>`).join('')}</td><td>${esc(r.email)}</td><td><span class="tag ${r.attending?'':'no'}">${r.attending?'Attending':'Declined'}</span></td><td>${r.attending?r.guest_count:'—'}</td><td>${stayTxt(r.stay)}</td><td>${esc(dietOf(r))}</td><td>${esc(r.message)}</td></tr>`).join('');
+ $('#rows').innerHTML=list.map(r=>`<tr><td>${new Date(r.created_at).toLocaleDateString()}${r.updated_at!==r.created_at?'<br><small>edited</small>':''}</td><td>${esc(r.first_name)} ${esc(r.last_name)}${(r.guests||[]).map(g=>`<br><small>+ ${esc(g.first)} ${esc(g.last)}</small>`).join('')}</td><td>${esc(r.email)}</td><td><span class="tag ${r.attending?'':'no'}">${r.attending?'Attending':'Declined'}</span></td><td>${r.attending?r.guest_count:'—'}</td><td>${stayTxt(r.stay)}</td><td>${esc(roomsOf(r))}</td><td>${r.total_amount!=null?'R'+Number(r.total_amount).toLocaleString('en-ZA'):'—'}<br><small>${esc(r.payment_reference||'')}</small></td><td>${esc(dietOf(r))}</td><td>${esc(r.message)}</td></tr>`).join('');
  $('#empty').textContent=list.length?'':'No RSVPs match.';
 }
-function csv(){const c=v=>'"'+String(v??'').replace(/"/g,'""')+'"';const out=[['Received','First','Last','Email','Attending','Guests','Stay','Additional guests','Dietary','Message'].map(c).join(',')];
- rows.forEach(r=>out.push([r.created_at,r.first_name,r.last_name,r.email,r.attending?'yes':'no',r.guest_count,r.stay||'',(r.guests||[]).map(g=>g.first+' '+g.last).join('; '),dietOf(r),r.message].map(c).join(',')));
+function csv(){const c=v=>'"'+String(v??'').replace(/"/g,'""')+'"';const out=[['Received','First','Last','Email','Attending','Guests','Stay','Additional guests','Accommodation','Amount due','Payment reference','Dietary','Message'].map(c).join(',')];
+ rows.forEach(r=>out.push([r.created_at,r.first_name,r.last_name,r.email,r.attending?'yes':'no',r.guest_count,r.stay||'',(r.guests||[]).map(g=>g.first+' '+g.last).join('; '),roomsOf(r),r.total_amount??'',r.payment_reference||'',dietOf(r),r.message].map(c).join(',')));
  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([out.join('\n')],{type:'text/csv'}));a.download='rsvps.csv';a.click()}
 function start(){load().then(()=>{clearInterval(timer);timer=setInterval(()=>load().catch(()=>{}),60000)}).catch(e=>{sessionStorage.removeItem('rsvp-pw');$('#lerr').textContent=e.message})}
 $('#lf').addEventListener('submit',e=>{e.preventDefault();pw=$('#pw').value;sessionStorage.setItem('rsvp-pw',pw);$('#lerr').textContent='';start()});
