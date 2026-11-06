@@ -8,6 +8,15 @@ function same(a, b) {
   return crypto.timingSafeEqual(x, y);
 }
 
+// Turns a failed Supabase response into a short, helpful message (this endpoint is password-protected).
+async function dbMessage(r) {
+  let t = '';
+  try { t = await r.text(); const j = JSON.parse(t); t = [j.message, j.hint, j.code].filter(Boolean).join(' / ') || t; } catch (e) {}
+  const tip = r.status === 404 ? ' Has supabase/rsvp.sql been run? Is SUPABASE_URL just the project URL (https://xxxx.supabase.co)?'
+    : r.status === 401 || r.status === 403 ? ' Check SUPABASE_SERVICE_ROLE_KEY (must be the service_role key, not the anon key).' : '';
+  return String(t).slice(0, 300) + tip;
+}
+
 module.exports = async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   const { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, ADMIN_PASSWORD } = process.env;
@@ -34,7 +43,7 @@ module.exports = async (req, res) => {
         headers: { ...H, Prefer: 'return=representation' },
         body: JSON.stringify({ paid, paid_amount: paid ? amount : null, paid_at: paid ? new Date().toISOString() : null, pay_note: paid ? String(body.note || '').slice(0, 300) || null : null }),
       });
-      if (!r.ok) return res.status(502).json({ error: 'Database error (' + r.status + ').' });
+      if (!r.ok) return res.status(502).json({ error: 'Database error (' + r.status + '): ' + (await dbMessage(r)) });
       const rows = await r.json();
       if (!rows.length) return res.status(404).json({ error: 'RSVP not found.' });
       return res.status(200).json({ row: rows[0] });
@@ -47,9 +56,9 @@ module.exports = async (req, res) => {
       base + '?select=*&order=created_at.desc&limit=2000',
       { headers: H }
     );
-    if (!r.ok) return res.status(502).json({ error: 'Database error (' + r.status + ').' });
+    if (!r.ok) return res.status(502).json({ error: 'Database error (' + r.status + '): ' + (await dbMessage(r)) });
     return res.status(200).json({ rows: await r.json() });
   } catch (e) {
-    return res.status(502).json({ error: 'Could not reach the database.' });
+    return res.status(502).json({ error: 'Could not reach the database: ' + (e && e.message ? e.message : e) + ' (check SUPABASE_URL).' });
   }
 };
