@@ -1,4 +1,0 @@
-# Clean URLs: send *.html to the extensionless address, and serve it.
-/index.html   /      301!
-/rsvp.html    /rsvp  301!
-/rsvp         /rsvp.html  200
