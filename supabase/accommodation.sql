@@ -58,6 +58,11 @@ begin
   if coalesce(payload->>'attending','') not in ('yes','no') then raise exception 'attendance required'; end if;
   if v_attending and v_stay is null then raise exception 'stay required'; end if;
 
+  -- Once an RSVP has been marked paid it is locked: it can only be changed by the couple (from the dashboard / database).
+  if exists (select 1 from public.rsvps where lower(email) = lower(trim(payload->>'email')) and paid) then
+    raise exception 'rsvp_locked';
+  end if;
+
   if v_attending then
     v_total := 0;
     for item in select * from jsonb_array_elements(coalesce(payload->'accommodation','[]'::jsonb)) loop

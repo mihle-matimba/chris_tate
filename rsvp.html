@@ -197,7 +197,7 @@ $('#next').addEventListener('click',async()=>{
   let res;
   try{res=await fetch(cfg.supabaseUrl.replace(/\/$/,'')+'/rest/v1/rpc/submit_rsvp',{method:'POST',signal:ctl.signal,headers:Object.assign({'Content-Type':'application/json',apikey:cfg.anonKey},cfg.anonKey.startsWith('eyJ')?{Authorization:'Bearer '+cfg.anonKey}:{}),body:JSON.stringify({payload})});}
   finally{clearTimeout(timer)}
-  if(!res.ok)throw new Error('Submission failed ('+res.status+').');
+  if(!res.ok){const t=await res.text().catch(()=>'');if(/rsvp_locked/.test(t)){btn.disabled=false;btn.textContent='Send RSVP';$('#error').textContent='Your RSVP has already been confirmed and your payment received, so it can no longer be changed online. Please contact Christopher & Tatum to make any changes.';return}throw new Error('Submission failed ('+res.status+').')}
   complete(true);
  }catch(err){$('#error').textContent='Your RSVP was not sent. '+(err.name==='AbortError'?'The connection timed out. ':err.message+' ')+'Please try again, or contact the couple.';btn.disabled=false;btn.textContent='Send RSVP';}
 });
