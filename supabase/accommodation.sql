@@ -107,3 +107,17 @@ alter table public.rsvps
   add column if not exists paid_amount int,
   add column if not exists paid_at     timestamptz,
   add column if not exists pay_note    text;
+
+-- Lets the RSVP form check, as soon as an email is typed, whether that RSVP is already locked (paid).
+-- Returns only true/false; no other details are exposed.
+create or replace function public.rsvp_is_locked(p_email text)
+returns boolean
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select exists (select 1 from public.rsvps where lower(email) = lower(trim(p_email)) and paid);
+$$;
+revoke all on function public.rsvp_is_locked(text) from public;
+grant execute on function public.rsvp_is_locked(text) to anon;

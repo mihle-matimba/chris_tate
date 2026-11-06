@@ -175,8 +175,25 @@ $('#roomList').addEventListener('change',e=>{
 function validate(){let msg='';if(step===0){for(const el of [$('#first'),$('#last'),$('#email')]){if(!el.value.trim()||!el.checkValidity()){msg='Please enter your name and a valid email address.';el.focus();break}}}if(step===1){if(!$('#attend').value)msg='Please select whether you will attend.';else if($('#attend').value==='yes'){if(!form.querySelector('input[name=stay]:checked'))msg='Please let us know which nights you will be staying.';else for(const el of $('#additionalGuests').querySelectorAll('input[required]')){if(!el.value.trim()){msg='Please enter the first and last name for each additional guest.';el.focus();break;}}}}if(step===2&&$('#attend').value==='yes'){if(allocated()!==guestsN())msg='Please choose accommodation for all '+guestsN()+' guests ('+allocated()+' chosen so far).';}$('#error').textContent=msg;return !msg;}
 function setStep(n){step=n;steps.forEach((el,i)=>el.classList.toggle('active',i===n));$('#progress').style.width=((n+1)/5*100)+'%';$('#stepCount').textContent=String(n+1).padStart(2,'0')+' / 05';$('#next').textContent=n===4?'Send RSVP':'Continue';$('#back').textContent=n===0?'Invitation':'Back';$('#error').textContent='';if(n===2)renderRooms();if(n===4)$('#review').textContent=response();window.scrollTo({top:0,behavior:'smooth'})}
 $('#back').addEventListener('click',()=>step===0?showStage('letter'):setStep(step===3&&$('#attend').value!=='yes'?1:step-1));
+const LOCK_MSG='Your RSVP has already been confirmed and your payment received, so it can no longer be changed online. Please contact Christopher & Tatum to make any changes.';
+const isLocal=()=>location.protocol==='file:'||['localhost','127.0.0.1'].includes(location.hostname);
+let lockCache={};
+async function checkLocked(email){
+ email=(email||'').trim().toLowerCase();const cfg=window.RSVP_CONFIG||{};
+ if(!email||isLocal()||!cfg.supabaseUrl||!cfg.anonKey)return false;
+ if(email in lockCache)return lockCache[email];
+ try{
+  const ctl=new AbortController(),t=setTimeout(()=>ctl.abort(),8000);
+  const r=await fetch(cfg.supabaseUrl.replace(/\/$/,'')+'/rest/v1/rpc/rsvp_is_locked',{method:'POST',signal:ctl.signal,headers:Object.assign({'Content-Type':'application/json',apikey:cfg.anonKey},cfg.anonKey.startsWith('eyJ')?{Authorization:'Bearer '+cfg.anonKey}:{}),body:JSON.stringify({p_email:email})});
+  clearTimeout(t);
+  if(!r.ok)return false; // fail open: the server still refuses the final submit
+  return lockCache[email]=(await r.json())===true;
+ }catch(e){return false}
+}
+$('#email').addEventListener('change',async()=>{if($('#email').checkValidity()&&await checkLocked($('#email').value))$('#error').textContent=LOCK_MSG});
 $('#next').addEventListener('click',async()=>{
- if(!validate())return;if(step<4){setStep(step===1&&$('#attend').value!=='yes'?3:step+1);return;}
+ if(!validate())return;
+ if(step===0){const b=$('#next');b.disabled=true;const locked=await checkLocked($('#email').value);b.disabled=false;if(locked){$('#error').textContent=LOCK_MSG;$('#email').focus();return}}if(step<4){setStep(step===1&&$('#attend').value!=='yes'?3:step+1);return;}
  const btn=$('#next');btn.disabled=true;btn.textContent='Sending';$('#error').textContent='';
  // Live RSVPs are stored in Supabase (see supabase/rsvp.sql). Local previews never hit the live table.
  if(location.protocol==='file:' || ['localhost','127.0.0.1'].includes(location.hostname)){
@@ -197,7 +214,7 @@ $('#next').addEventListener('click',async()=>{
   let res;
   try{res=await fetch(cfg.supabaseUrl.replace(/\/$/,'')+'/rest/v1/rpc/submit_rsvp',{method:'POST',signal:ctl.signal,headers:Object.assign({'Content-Type':'application/json',apikey:cfg.anonKey},cfg.anonKey.startsWith('eyJ')?{Authorization:'Bearer '+cfg.anonKey}:{}),body:JSON.stringify({payload})});}
   finally{clearTimeout(timer)}
-  if(!res.ok){const t=await res.text().catch(()=>'');if(/rsvp_locked/.test(t)){btn.disabled=false;btn.textContent='Send RSVP';$('#error').textContent='Your RSVP has already been confirmed and your payment received, so it can no longer be changed online. Please contact Christopher & Tatum to make any changes.';return}throw new Error('Submission failed ('+res.status+').')}
+  if(!res.ok){const t=await res.text().catch(()=>'');if(/rsvp_locked/.test(t)){btn.disabled=false;btn.textContent='Send RSVP';$('#error').textContent=LOCK_MSG;return}throw new Error('Submission failed ('+res.status+').')}
   complete(true);
  }catch(err){$('#error').textContent='Your RSVP was not sent. '+(err.name==='AbortError'?'The connection timed out. ':err.message+' ')+'Please try again, or contact the couple.';btn.disabled=false;btn.textContent='Send RSVP';}
 });
