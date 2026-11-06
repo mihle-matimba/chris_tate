@@ -54,3 +54,7 @@
 .schedule p{margin:4px 0 0!important}
 @media(max-width:900px){.schedule{grid-template-columns:1fr;grid-template-rows:none;grid-auto-flow:row}}
 @media(max-width:640px){.details-grid{grid-template-columns:1fr}.detail-card,.schedule-card{grid-column:auto}.schedule-card{padding:26px}.schedule li{grid-template-columns:1fr;gap:4px}}
+.schedule-card h3 small{display:block;font:400 12px 'DM Sans',sans-serif;letter-spacing:.14em;text-transform:uppercase;color:var(--taupe);margin-top:4px}
+.friday-card .schedule{grid-template-rows:repeat(2,auto)}
+.schedule-note{margin:18px 0 0!important;padding-top:14px;border-top:1px solid var(--line);font-style:italic}
+@media(max-width:900px){.friday-card .schedule{grid-template-rows:none}}
