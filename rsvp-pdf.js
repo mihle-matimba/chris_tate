@@ -54,7 +54,7 @@ async function buildRsvpPdf(d){
  row('Name',(d.first+' '+d.last).trim());row('Email',d.email);
  row('Response',yes?'Joyfully accepts':'Regretfully declines');
  if(yes){
-  row('Staying',d.stay==='both_nights'?'Both nights (Friday 12 & Saturday 13 February)':'Friday night only (12 February)');
+  row('Staying',d.stay==='both_nights'?'Both nights (Friday 12 & Saturday 13 February)':'Saturday night only (13 February)');
   row('Number of guests',gN);
   row('Dietary (you)',d.diet||'None provided');
   (d.guestsList||[]).forEach((g,i)=>row('Guest '+(i+2),((g.first||'')+' '+(g.last||'')).trim()+'  (dietary: '+(g.diet||'none')+')'));
@@ -69,10 +69,12 @@ async function buildRsvpPdf(d){
   font(serif,'normal');doc.setFontSize(26);color(INK);doc.text(money(d.total),M+16,y+42);
   sansW('light');doc.setFontSize(9.5);color(SOFT);doc.text(n+(n===1?' night':' nights')+' · '+gN+(gN===1?' guest':' guests'),W-M-16,y+36,{align:'right'});
   y+=50+20;
-  para('Rates are per person, per night. Children sleeping in their own bed pay the full rate. Accommodation is 100% self-catering: please bring your own food, drinks and ice. Check-in is at 14:00 on Friday and check-out is at 10:00 on Sunday. The Deli is open Friday 08:00 to 22:00, Saturday 07:00 to 17:00 and Sunday 07:00 to 15:00. For accommodation questions contact Sherize (+76 344 4583) or Benjamin (+27 73 648 3142).');
+  para('Rates are per person, per night. Children sleeping in their own bed pay the full rate. Accommodation is 100% self-catering: please bring your own food, drinks and ice. Check-in is at 14:00 on '+(d.stay==='both_nights'?'Friday':'Saturday')+' and check-out is at 10:00 on Sunday. The Deli is open Friday 08:00 to 22:00, Saturday 07:00 to 17:00 and Sunday 07:00 to 15:00. For accommodation questions contact Sherize (+76 344 4583) or Benjamin (+27 73 648 3142).');
+  if(d.stay==='both_nights'){
   head('Friday 12 February');
   for(const [t,d] of [['14:00','Check-in at the accommodation'],['16:30','Make your way to the Deli'],['18:00','Casual dinner at the Deli'],['22:00','Bar closes']])row(t,d);
   para('We will arrange dinner for Friday night. Saturday and Sunday breakfast: guests are welcome to enjoy breakfast at the Deli.');
+  }
   head('How to pay');
   row('Amount',money(d.total));if(d.paid)row('Payment status','Received'+(d.paid.amount!=null?' '+money(d.paid.amount):'')+(d.paid.date?' on '+d.paid.date:''));row('Reference',d.reference);
   row('Bank',BANK.bank);row('Account holder',BANK.holder);row('Account type',BANK.type);row('Account number',BANK.number);row('Branch',BANK.branchName+' ('+BANK.branch+')');row('Swift code',BANK.swift);
