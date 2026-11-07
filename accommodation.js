@@ -2,13 +2,13 @@
 // Rates are per person, per night, VAT included. KEEP IN SYNC with supabase/accommodation.sql (server re-checks prices).
 (function () {
   var rooms = [
-    { id: 'irafi-1', group: 'House Irafi', label: 'House Irafi · Room 1', short: 'Irafi R1', rate: 1600, cap: 2, note: 'En-suite, 2 x 3/4 beds' },
-    { id: 'irafi-2', group: 'House Irafi', label: 'House Irafi · Room 2', short: 'Irafi R2', rate: 1600, cap: 2, note: 'En-suite, 2 x 3/4 beds' },
-    { id: 'irafi-3', group: 'House Irafi', label: 'House Irafi · Room 3 (Honeymoon Suite)', short: 'Irafi R3', rate: 1925, cap: 2, note: 'Queen bed, en-suite bath, patio with jacuzzi' },
+    { id: 'irafi-1', unavailable: true, group: 'House Irafi', label: 'House Irafi · Room 1', short: 'Irafi R1', rate: 1600, cap: 2, note: 'En-suite, 2 x 3/4 beds' },
+    { id: 'irafi-2', unavailable: true, group: 'House Irafi', label: 'House Irafi · Room 2', short: 'Irafi R2', rate: 1600, cap: 2, note: 'En-suite, 2 x 3/4 beds' },
+    { id: 'irafi-3', unavailable: true, group: 'House Irafi', label: 'House Irafi · Room 3 (Honeymoon Suite)', short: 'Irafi R3', rate: 1925, cap: 2, note: 'Queen bed, en-suite bath, patio with jacuzzi' },
     { id: 'ibala', group: 'Ibala-Bala Chalets', label: 'Ibala-Bala Chalet', short: 'Ibala-Bala', rate: 1045, cap: 20, note: '4 chalets, each sleeps 5' },
     { id: 'malazi-1', group: 'Malazi Houses', label: 'Malazi 1', short: 'Malazi 1', rate: 950, cap: 8, note: 'Sleeps 8' },
-    { id: 'malazi-2', group: 'Malazi Houses', label: 'Malazi 2', short: 'Malazi 2', rate: 950, cap: 12, note: 'Sleeps 12' },
-    { id: 'malazi-3', group: 'Malazi Houses', label: 'Malazi 3', short: 'Malazi 3', rate: 950, cap: 12, note: 'Sleeps 12' },
+    { id: 'malazi-2', unavailable: true, group: 'Malazi Houses', label: 'Malazi 2', short: 'Malazi 2', rate: 950, cap: 12, note: 'Sleeps 12' },
+    { id: 'malazi-3', unavailable: true, group: 'Malazi Houses', label: 'Malazi 3', short: 'Malazi 3', rate: 950, cap: 12, note: 'Sleeps 12' },
     { id: 'malazi-4', group: 'Malazi Houses', label: 'Malazi 4', short: 'Malazi 4', rate: 950, cap: 12, note: 'Sleeps 12' },
     { id: 'malazi-5', group: 'Malazi Houses', label: 'Malazi 5', short: 'Malazi 5', rate: 950, cap: 10, note: 'Sleeps 10' },
     { id: 'inyati', group: 'Inyati', label: 'Inyati', short: 'Inyati', rate: 950, cap: 8, note: 'Sleeps 8' },
