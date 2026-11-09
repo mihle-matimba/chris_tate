@@ -159,7 +159,7 @@ function renderRooms(focus){
   for(const r of R){
    if(r.group!==grp){if(grp)opts+='</optgroup>';grp=r.group;opts+=`<optgroup label="${esc(grp)}">`}
    const mine=assign[i]===r.id,taken=(counts[r.id]||0)-(mine?1:0),full=r.unavailable||taken>=r.cap;
-   opts+=`<option value="${r.id}"${mine?' selected':''}${full?' disabled':''}>${esc(r.label)} · ${money(r.rate)} pp/night${n?' ('+money(r.rate*n)+' total)':''}${r.unavailable?' · UNAVAILABLE':full?' · FULL':' · '+(r.cap-taken)+' space'+(r.cap-taken===1?'':'s')+' left'}</option>`;
+   opts+=`<option value="${r.id}"${mine?' selected':''}${full?' disabled':''}>${esc(r.label)} · ${money(r.rate)} pp/night${n?' ('+money(r.rate*n)+' total)':''}${r.unavailable?' · UNAVAILABLE':full?' · FULL':' · '+(r.cap-taken)+' space'+(r.cap-taken===1?'':'s')+' left'}${r.tag&&!r.unavailable&&!full?' · '+esc(r.tag):''}</option>`;
   }
   opts+='</optgroup>';
   html+=`<div class="guest-pick"><label for="pick${i}">${esc(guestName(i))}${i===0?' (you)':''}</label><select id="pick${i}" data-g="${i}">${opts}</select></div>`;

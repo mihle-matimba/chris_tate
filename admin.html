@@ -75,7 +75,7 @@ function openEdit(r){
   guests:r.attending?all.map(g=>({...g,room:pick((g.first+' '+g.last).trim())})):[{...all[0],room:''}]};
  drawEdit();$('#editModal').classList.remove('hidden');
 }
-const roomOptions=sel=>{let h='<option value="">Choose accommodation…</option>',grp='';for(const r of window.ROOMS){if(r.group!==grp){if(grp)h+='</optgroup>';grp=r.group;h+=`<optgroup label="${esc(grp)}">`}h+=`<option value="${r.id}"${sel===r.id?' selected':''}>${esc(r.label)} · R${r.rate.toLocaleString('en-ZA')} pp/night${r.unavailable?' (marked unavailable)':''}</option>`}return h+'</optgroup>'};
+const roomOptions=sel=>{let h='<option value="">Choose accommodation…</option>',grp='';for(const r of window.ROOMS){if(r.group!==grp){if(grp)h+='</optgroup>';grp=r.group;h+=`<optgroup label="${esc(grp)}">`}h+=`<option value="${r.id}"${sel===r.id?' selected':''}>${esc(r.label)} · R${r.rate.toLocaleString('en-ZA')} pp/night${r.unavailable?' (marked unavailable)':r.tag?' ('+esc(r.tag)+')':''}</option>`}return h+'</optgroup>'};
 function editCalc(){
  const n=NIGHTS[ed.stay]||0,by={};let total=0,err='';
  if(ed.attending)ed.guests.forEach((g,i)=>{const r=window.ROOMS.find(x=>x.id===g.room);if(!r){err=err||'Guest '+(i+1)+' needs an accommodation.';return}(by[r.id]=by[r.id]||[]).push(i);total+=r.rate*n});
