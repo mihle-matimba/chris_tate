@@ -16,8 +16,8 @@
   ];
   ['Sefata', 'Tulia', 'Ilanga', 'Sehlala'].forEach(function (u) {
     var k = u.toLowerCase();
-    rooms.push({ id: k + '-a', group: 'Units', label: u + ' · Rooms 1 & 8', short: u + ' R1&8', rate: 1080, cap: 4, note: 'Max 2 per room. Kettle & coffee only, no kitchen' });
-    rooms.push({ id: k + '-b', group: 'Units', label: u + ' · Rooms 2 to 7', short: u + ' R2-7', rate: 970, cap: 12, note: 'Max 2 per room. Kettle & coffee only, no kitchen' });
+    rooms.push({ id: k + '-a', group: 'Units', label: u + ' (room 1 or 8)', short: u + ' R1&8', rate: 1080, cap: 4, note: 'Max 2 per room. Kettle & coffee only, no kitchen' });
+    rooms.push({ id: k + '-b', group: 'Units', label: u + ' (rooms 2 to 7)', short: u + ' R2-7', rate: 970, cap: 12, note: 'Max 2 per room. Kettle & coffee only, no kitchen' });
   });
   window.ROOMS = rooms;
   window.NIGHTS = { both_nights: 2, friday_only: 1 };

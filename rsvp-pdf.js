@@ -62,7 +62,7 @@ async function buildRsvpPdf(d){
  if(d.message)row('Your message',d.message);
  if(yes&&roomList.length){
   head('Accommodation');
-  for(const {id,names} of roomList){const r=roomOf(id);if(!r)continue;row(r.label,names.join(', ')+'\n'+names.length+' × '+n+(n===1?' night':' nights')+' × '+money(r.rate)+' = '+money(r.rate*names.length*n))}
+  for(const {id,names} of roomList){const r=roomOf(id);if(!r)continue;row(names.length+(names.length===1?' person':' people'),'in '+r.label+'\n'+names.join(', ')+'\n'+names.length+' × '+n+(n===1?' night':' nights')+' × '+money(r.rate)+' = '+money(r.rate*names.length*n))}
   y+=8;need(70);
   doc.setFillColor(...CREAM);doc.setDrawColor(...OLIVE);doc.setLineWidth(.6);doc.roundedRect(M,y,CW,50,3,3,'FD');
   color(OLIVE);sansW('normal');doc.setFontSize(8);spaced('TOTAL DUE · VAT INCLUDED',M+16,y+19,2);
