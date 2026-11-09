@@ -11,15 +11,16 @@ button{background:var(--olive);color:#fff;border-color:var(--olive);cursor:point
 .bar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}.bar input{flex:1;min-width:180px}
 .scroll{overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;padding:10px 8px;border-bottom:1px solid var(--border);vertical-align:top}th{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--soft);white-space:nowrap}
 .tag{display:inline-block;padding:2px 9px;border-radius:99px;font-size:12px;background:#e8ecd9}.tag.no{background:#efddd6}.hidden{display:none}.err{color:#a33;min-height:20px}
-small{color:var(--soft)}button.sm{padding:4px 10px;font-size:12px;margin-top:4px}
+small{color:var(--soft)}.modal{position:fixed;inset:0;background:rgba(35,29,24,.6);display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow:auto;z-index:50}.modal.hidden{display:none}.dlg{background:var(--paper);border-radius:12px;max-width:760px;width:100%;padding:22px;margin:auto}.dlg h2{font:400 28px Georgia,serif;margin:0 0 4px}.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}.dlg label{display:block;font-size:12px;color:var(--soft);margin:10px 0 3px}.dlg input,.dlg select,.dlg textarea{width:100%;font:inherit;padding:9px 10px;border:1px solid var(--border);border-radius:8px;background:#fff}.gcard{border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-top:10px;background:#fffdf9}.gcard .g2{grid-template-columns:1fr 1fr}.gcard .full{grid-column:1/-1}.sum{margin-top:14px;padding:12px;border:1px solid var(--olive);border-radius:8px;background:#f6f4ec;font-size:14px}.sum .bad{color:#a33}.sum .big{font:400 26px Georgia,serif}.row-end{display:flex;gap:10px;justify-content:flex-end;margin-top:16px;flex-wrap:wrap}@media(max-width:560px){.g2,.gcard .g2{grid-template-columns:1fr}}button.sm{padding:4px 10px;font-size:12px;margin-top:4px}
 </style></head><body><div class="wrap">
 <div id="login" class="card login"><h1>RSVPs</h1><p class="muted">Enter the dashboard password.</p><form id="lf"><input id="pw" type="password" autocomplete="current-password" placeholder="Password" style="width:100%;margin-bottom:10px" required><button style="width:100%">View RSVPs</button><p class="err" id="lerr"></p></form></div>
 <div id="app" class="hidden">
 <div style="display:flex;justify-content:space-between;align-items:end;flex-wrap:wrap;gap:10px"><div><h1>RSVP Dashboard</h1><span class="muted" id="upd"></span></div><div class="bar" style="margin:0"><button class="sec" id="refresh">Refresh</button><button class="sec" id="csv">Download CSV</button><button class="sec" id="out">Log out</button></div></div>
 <div class="stats" id="stats"></div>
 <div class="card"><div class="bar"><input id="q" placeholder="Search name, email, dietary…"><select id="fa"><option value="">All responses</option><option value="yes">Attending</option><option value="no">Declined</option></select><select id="fs"><option value="">Any stay</option><option value="both_nights">Both nights</option><option value="friday_only">Saturday only</option></select><select id="fp"><option value="">Any payment</option><option value="paid">Paid</option><option value="unpaid">Unpaid (attending)</option></select></div>
-<div class="scroll"><table><thead><tr><th>Received</th><th>Name</th><th>Email</th><th>Response</th><th>Guests</th><th>Stay</th><th>Payment</th><th>Accommodation</th><th>Amount / reference</th><th>Dietary</th><th>Message</th><th>PDF</th></tr></thead><tbody id="rows"></tbody></table></div><p class="muted" id="empty"></p></div>
+<div class="scroll"><table><thead><tr><th>Received</th><th>Name</th><th>Email</th><th>Response</th><th>Guests</th><th>Stay</th><th>Payment</th><th>Accommodation</th><th>Amount / reference</th><th>Dietary</th><th>Message</th><th>PDF / Edit</th></tr></thead><tbody id="rows"></tbody></table></div><p class="muted" id="empty"></p></div>
 </div></div>
+<div class="modal hidden" id="editModal"><div class="dlg" id="editDlg"></div></div>
 <script src="/accommodation.js"></script>
 <script src="/vendor/jspdf.umd.min.js" defer></script><script src="/rsvp-pdf.js" defer></script>
 <script>
@@ -36,7 +37,7 @@ async function load(){
 function roomsOf(r){return (r.accommodation||[]).map(a=>{const x=(window.ROOMS||[]).find(z=>z.id===a.id);return a.people+(a.people===1?' person':' people')+' in '+(x?x.label:a.id)+(a.names&&a.names.length?' ('+a.names.join(', ')+')':'')}).join('; ')}
 function payCell(r){
  if(!r.attending)return '<small>n/a</small>';
- if(r.paid)return `<span class="tag">Paid${r.paid_amount!=null?' R'+Number(r.paid_amount).toLocaleString('en-ZA'):''}</span><br><small>${r.paid_at?new Date(r.paid_at).toLocaleDateString():''}${r.pay_note?' · '+esc(r.pay_note):''}</small>${r.total_amount!=null&&r.paid_amount!=null&&r.paid_amount!==r.total_amount?`<br><small style="color:#a33">Now owes R${Number(r.total_amount).toLocaleString('en-ZA')} (RSVP changed)</small>`:''}<br><button class="sec sm" data-undo="${r.id}">Undo</button>`;
+ if(r.paid)return `<span class="tag">Paid${r.paid_amount!=null?' R'+Number(r.paid_amount).toLocaleString('en-ZA'):''}</span><br><small>${r.paid_at?new Date(r.paid_at).toLocaleDateString():''}${r.pay_note?' · '+esc(r.pay_note):''}</small>${r.total_amount!=null&&r.paid_amount!=null&&r.paid_amount!==r.total_amount?`<br><small style="color:#a33">${r.total_amount>r.paid_amount?'Still owes R'+(r.total_amount-r.paid_amount).toLocaleString('en-ZA'):'Overpaid by R'+(r.paid_amount-r.total_amount).toLocaleString('en-ZA')} (booking changed)</small>`:''}<br><button class="sec sm" data-undo="${r.id}">Undo</button>`;
  return `<span class="tag no">Unpaid</span><br><button class="sm" data-pay="${r.id}">Confirm payment</button>`;
 }
 async function setPaid(id,paid,amount,note){
@@ -51,7 +52,7 @@ function render(){
  $('#stats').innerHTML=[['Responses',rows.length],['Attending (people)',heads],['Declined',no.length],['Both nights',both],['Saturday only',fri],['With dietary notes',yes.filter(dietOf).length],['Accommodation due','R'+yes.reduce((n,r)=>n+(r.total_amount||0),0).toLocaleString('en-ZA')],['Received','R'+yes.filter(r=>r.paid).reduce((n,r)=>n+(r.paid_amount??r.total_amount??0),0).toLocaleString('en-ZA')],['Guests paid',yes.filter(r=>r.paid).length+' / '+yes.length]].map(([a,b])=>`<div class="card stat"><b>${b}</b><span>${a}</span></div>`).join('');
  const q=$('#q').value.toLowerCase(),fa=$('#fa').value,fs=$('#fs').value,fp=$('#fp').value;
  const list=rows.filter(r=>(!fa||(fa==='yes')===r.attending)&&(!fs||r.stay===fs)&&(!fp||(fp==='paid'?r.paid:(r.attending&&!r.paid)))&&(!q||[r.first_name,r.last_name,r.email,dietOf(r),r.message,...(r.guests||[]).map(g=>g.first+' '+g.last)].join(' ').toLowerCase().includes(q)));
- $('#rows').innerHTML=list.map(r=>`<tr><td>${new Date(r.created_at).toLocaleDateString()}${r.updated_at!==r.created_at?'<br><small>edited</small>':''}</td><td>${esc(r.first_name)} ${esc(r.last_name)}${(r.guests||[]).map(g=>`<br><small>+ ${esc(g.first)} ${esc(g.last)}</small>`).join('')}</td><td>${esc(r.email)}</td><td><span class="tag ${r.attending?'':'no'}">${r.attending?'Attending':'Declined'}</span></td><td>${r.attending?r.guest_count:'—'}</td><td>${stayTxt(r.stay)}</td><td>${payCell(r)}</td><td>${esc(roomsOf(r))}</td><td>${r.total_amount!=null?'R'+Number(r.total_amount).toLocaleString('en-ZA'):'—'}<br><small>${esc(r.payment_reference||'')}</small></td><td>${esc(dietOf(r))}</td><td>${esc(r.message)}</td><td><button class="sec sm" data-pdf="${r.id}">PDF</button></td></tr>`).join('');
+ $('#rows').innerHTML=list.map(r=>`<tr><td>${new Date(r.created_at).toLocaleDateString()}${r.updated_at!==r.created_at?'<br><small>edited</small>':''}</td><td>${esc(r.first_name)} ${esc(r.last_name)}${(r.guests||[]).map(g=>`<br><small>+ ${esc(g.first)} ${esc(g.last)}</small>`).join('')}</td><td>${esc(r.email)}</td><td><span class="tag ${r.attending?'':'no'}">${r.attending?'Attending':'Declined'}</span></td><td>${r.attending?r.guest_count:'—'}</td><td>${stayTxt(r.stay)}</td><td>${payCell(r)}</td><td>${esc(roomsOf(r))}</td><td>${r.total_amount!=null?'R'+Number(r.total_amount).toLocaleString('en-ZA'):'—'}<br><small>${esc(r.payment_reference||'')}</small></td><td>${esc(dietOf(r))}</td><td>${esc(r.message)}</td><td><button class="sec sm" data-pdf="${r.id}">PDF</button><br><button class="sm" data-edit="${r.id}">Edit</button></td></tr>`).join('');
  $('#empty').textContent=list.length?'':'No RSVPs match.';
 }
 function csv(){const c=v=>'"'+String(v??'').replace(/"/g,'""')+'"';const out=[['Received','First','Last','Email','Attending','Guests','Stay','Additional guests','Accommodation','Amount due','Payment reference','Paid','Amount received','Paid on','Dietary','Message'].map(c).join(',')];
@@ -61,6 +62,62 @@ function start(){load().then(()=>{clearInterval(timer);timer=setInterval(()=>loa
 $('#lf').addEventListener('submit',e=>{e.preventDefault();pw=$('#pw').value;sessionStorage.setItem('rsvp-pw',pw);$('#lerr').textContent='';start()});
 ['q','fa','fs','fp'].forEach(i=>$('#'+i).addEventListener('input',render));
 $('#refresh').onclick=()=>load().catch(e=>alert(e.message));$('#csv').onclick=csv;
+
+// ===== Edit a reservation =====
+let ed=null; // working copy while the edit dialog is open
+const NIGHTS={both_nights:2,friday_only:1};
+function slotsFor(r){ // expand saved rooms into one slot per person, in order
+ const out=[];(r.accommodation||[]).forEach(a=>{for(let i=0;i<a.people;i++)out.push({room:a.id,name:(a.names&&a.names[i])||''})});return out}
+function openEdit(r){
+ const slots=slotsFor(r),used=new Set(),all=[{first:r.first_name,last:r.last_name,diet:r.diet||''},...(r.guests||[]).map(g=>({first:g.first||'',last:g.last||'',diet:g.diet||''}))];
+ const pick=name=>{let k=slots.findIndex((x,i)=>!used.has(i)&&x.name&&x.name.trim()===name.trim());if(k<0)k=slots.findIndex((x,i)=>!used.has(i));if(k<0)return '';used.add(k);return slots[k].room};
+ ed={id:r.id,email:r.email,paid:r.paid,paid_amount:r.paid_amount,attending:r.attending,stay:r.stay||'both_nights',message:r.message||'',
+  guests:r.attending?all.map(g=>({...g,room:pick((g.first+' '+g.last).trim())})):[{...all[0],room:''}]};
+ drawEdit();$('#editModal').classList.remove('hidden');
+}
+const roomOptions=sel=>{let h='<option value="">Choose accommodation…</option>',grp='';for(const r of window.ROOMS){if(r.group!==grp){if(grp)h+='</optgroup>';grp=r.group;h+=`<optgroup label="${esc(grp)}">`}h+=`<option value="${r.id}"${sel===r.id?' selected':''}>${esc(r.label)} · R${r.rate.toLocaleString('en-ZA')} pp/night${r.unavailable?' (marked unavailable)':''}</option>`}return h+'</optgroup>'};
+function editCalc(){
+ const n=NIGHTS[ed.stay]||0,by={};let total=0,err='';
+ if(ed.attending)ed.guests.forEach((g,i)=>{const r=window.ROOMS.find(x=>x.id===g.room);if(!r){err=err||'Guest '+(i+1)+' needs an accommodation.';return}(by[r.id]=by[r.id]||[]).push(i);total+=r.rate*n});
+ for(const [id,ix] of Object.entries(by)){const r=window.ROOMS.find(x=>x.id===id);if(ix.length>r.cap)err=err||r.short+' holds at most '+r.cap+' (you have '+ix.length+').'}
+ return {total,err,by,n}
+}
+function drawEdit(){
+ const c=editCalc(),first=ed.guests[0]||{};
+ const sumHtml=!ed.attending?'<div>Marked as <b>not attending</b>. Accommodation and amount will be cleared.</div>':
+  Object.entries(c.by).map(([id,ix])=>{const r=window.ROOMS.find(x=>x.id===id);return `<div>${ix.length} ${ix.length===1?'person':'people'} in <b>${esc(r.label)}</b>: ${ix.length} × ${c.n} × R${r.rate.toLocaleString('en-ZA')} = R${(r.rate*ix.length*c.n).toLocaleString('en-ZA')}</div>`}).join('')+`<div class="big">Total: R${c.total.toLocaleString('en-ZA')}</div>`+(ed.paid?`<div>Already paid: R${Number(ed.paid_amount??0).toLocaleString('en-ZA')} ${c.total>Number(ed.paid_amount??0)?`<b class="bad">(still owes R${(c.total-Number(ed.paid_amount??0)).toLocaleString('en-ZA')})</b>`:c.total<Number(ed.paid_amount??0)?`<b class="bad">(overpaid by R${(Number(ed.paid_amount??0)-c.total).toLocaleString('en-ZA')})</b>`:'(matches)'}</div>`:'')+(c.err?`<div class="bad">${esc(c.err)}</div>`:'');
+ $('#editDlg').innerHTML=`<h2>Edit reservation</h2><small>${esc(ed.email)} (email can’t be changed here)</small>
+ <div class="g2"><div><label>Attending?</label><select id="eAtt"><option value="yes"${ed.attending?' selected':''}>Attending</option><option value="no"${ed.attending?'':' selected'}>Not attending</option></select></div>
+ <div><label>Nights staying</label><select id="eStay"${ed.attending?'':' disabled'}><option value="both_nights"${ed.stay==='both_nights'?' selected':''}>Both nights (12 & 13)</option><option value="friday_only"${ed.stay==='friday_only'?' selected':''}>Saturday only (13)</option></select></div></div>
+ ${ed.guests.map((g,i)=>`<div class="gcard"><b>${i===0?'Main guest':'Guest '+(i+1)}</b>${i>0?` <button class="sec sm" data-rm="${i}" style="float:right">Remove</button>`:''}<div class="g2"><div><label>First name</label><input data-f="first" data-i="${i}" value="${esc(g.first)}"></div><div><label>Last name</label><input data-f="last" data-i="${i}" value="${esc(g.last)}"></div>
+ ${ed.attending?`<div class="full"><label>Accommodation</label><select data-f="room" data-i="${i}">${roomOptions(g.room)}</select></div><div class="full"><label>Dietary requirements</label><input data-f="diet" data-i="${i}" value="${esc(g.diet)}"></div>`:''}</div></div>`).join('')}
+ ${ed.attending&&ed.guests.length<8?'<div style="margin-top:10px"><button class="sec sm" id="eAdd">+ Add a guest</button></div>':''}
+ <label>Message / note</label><textarea id="eMsg" rows="2">${esc(ed.message)}</textarea>
+ <div class="sum">${sumHtml}</div><p class="muted" id="eErr" style="color:#a33;min-height:18px"></p>
+ <div class="row-end"><button class="sec" id="eCancel">Cancel</button><button id="eSave">Save changes</button></div>`;
+}
+$('#editDlg').addEventListener('input',e=>{const t=e.target;if(!ed)return;if(t.id==='eMsg'){ed.message=t.value;return}
+ if(t.dataset.f){ed.guests[+t.dataset.i][t.dataset.f]=t.value;if(t.dataset.f==='room'){const y=$('#editModal').scrollTop;drawEdit();$('#editModal').scrollTop=y}}});
+$('#editDlg').addEventListener('change',e=>{const t=e.target;if(!ed)return;const y=$('#editModal').scrollTop;
+ if(t.id==='eAtt'){ed.attending=t.value==='yes';if(!ed.attending)ed.guests=[ed.guests[0]];drawEdit()}
+ else if(t.id==='eStay'){ed.stay=t.value;drawEdit()}
+ $('#editModal').scrollTop=y});
+$('#editDlg').addEventListener('click',async e=>{const t=e.target.closest('button');if(!t||!ed)return;
+ if(t.id==='eCancel'){ed=null;$('#editModal').classList.add('hidden');return}
+ if(t.id==='eAdd'){ed.guests.push({first:'',last:'',diet:'',room:''});drawEdit();return}
+ if(t.dataset.rm){ed.guests.splice(+t.dataset.rm,1);drawEdit();return}
+ if(t.id==='eSave'){
+  const c=editCalc();const g0=ed.guests[0];
+  if(!g0.first.trim()||!g0.last.trim()){$('#eErr').textContent='The main guest needs a first and last name.';return}
+  if(ed.attending&&ed.guests.slice(1).some(g=>!g.first.trim()||!g.last.trim())){$('#eErr').textContent='Every guest needs a first and last name.';return}
+  if(ed.attending&&c.err){$('#eErr').textContent=c.err;return}
+  t.disabled=true;t.textContent='Saving…';
+  try{
+   const r=await fetch('/api/rsvps',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:pw,action:'update_rsvp',id:ed.id,first:g0.first,last:g0.last,attending:ed.attending,stay:ed.attending?ed.stay:null,diet:g0.diet,message:ed.message,guests:ed.attending?ed.guests:[]})});
+   const j=await r.json().catch(()=>({error:'Unexpected response.'}));if(!r.ok)throw new Error(j.error||'Failed');
+   const i=rows.findIndex(x=>x.id===ed.id);if(i>=0)rows[i]=j.row;ed=null;$('#editModal').classList.add('hidden');render();
+  }catch(err){$('#eErr').textContent=err.message;t.disabled=false;t.textContent='Save changes'}
+ }});
 async function downloadPdf(r,btn){
  const old=btn.textContent;btn.disabled=true;btn.textContent='…';
  try{
@@ -73,6 +130,7 @@ async function downloadPdf(r,btn){
  }catch(e){alert('PDF failed: '+e.message)}finally{btn.disabled=false;btn.textContent=old}
 }
 $('#rows').addEventListener('click',async e=>{
+ const eb=e.target.closest('button[data-edit]');if(eb){const r=rows.find(x=>x.id===eb.dataset.edit);if(r)openEdit(r);return}
  const pb=e.target.closest('button[data-pdf]');if(pb){const r=rows.find(x=>x.id===pb.dataset.pdf);if(r)downloadPdf(r,pb);return}
  const b=e.target.closest('button[data-pay],button[data-undo]');if(!b)return;
  const id=b.dataset.pay||b.dataset.undo,r=rows.find(x=>x.id===id);if(!r)return;

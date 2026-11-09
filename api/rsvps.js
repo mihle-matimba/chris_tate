@@ -57,6 +57,59 @@ module.exports = async (req, res) => {
       return res.status(502).json({ error: 'Could not reach the database.' });
     }
   }
+  // Admin edit of a whole RSVP. The price, guest count and payment reference are recomputed here from the room_rates table.
+  // { action:'update_rsvp', id, first, last, attending, stay, diet, message, guests:[{first,last,diet,room}] }  (guests[0] = the main guest)
+  if (body.action === 'update_rsvp') {
+    const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuid.test(String(body.id || ''))) return res.status(400).json({ error: 'Bad id.' });
+    const str = (v, n) => String(v == null ? '' : v).trim().slice(0, n);
+    const first = str(body.first, 80), last = str(body.last, 80);
+    if (!first || !last) return res.status(400).json({ error: 'First and last name are required.' });
+    const attending = body.attending === true;
+    const patch = { first_name: first, last_name: last, attending, diet: str(body.diet, 600) || null, message: str(body.message, 1000) || null, updated_at: new Date().toISOString() };
+    try {
+      if (attending) {
+        const stay = body.stay;
+        if (stay !== 'both_nights' && stay !== 'friday_only') return res.status(400).json({ error: 'Choose which nights they are staying.' });
+        const list = Array.isArray(body.guests) ? body.guests : [];
+        if (list.length < 1 || list.length > 8) return res.status(400).json({ error: 'A booking needs between 1 and 8 guests.' });
+        const rr = await fetch(SUPABASE_URL.replace(/\/$/, '') + '/rest/v1/room_rates?select=*', { headers: H });
+        if (!rr.ok) return res.status(502).json({ error: 'Database error (' + rr.status + '): ' + (await dbMessage(rr)) });
+        const rates = Object.fromEntries((await rr.json()).map(x => [x.id, x]));
+        const nights = stay === 'both_nights' ? 2 : 1;
+        const byRoom = {}, extra = [];
+        let total = 0;
+        for (let i = 0; i < list.length; i++) {
+          const g = list[i] || {}, room = rates[g.room];
+          if (!room) return res.status(400).json({ error: 'Guest ' + (i + 1) + ' needs an accommodation.' });
+          const name = i === 0 ? (first + ' ' + last) : (str(g.first, 80) + ' ' + str(g.last, 80)).trim();
+          if (i > 0) {
+            if (!str(g.first, 80) || !str(g.last, 80)) return res.status(400).json({ error: 'Guest ' + (i + 1) + ' needs a first and last name.' });
+            extra.push({ first: str(g.first, 80), last: str(g.last, 80), diet: str(g.diet, 400) });
+          }
+          (byRoom[room.id] = byRoom[room.id] || []).push(name);
+          total += room.rate * nights;
+        }
+        for (const [id, names] of Object.entries(byRoom)) {
+          if (names.length > rates[id].capacity) return res.status(400).json({ error: rates[id].short + ' holds at most ' + rates[id].capacity + ' people (you put ' + names.length + ').' });
+        }
+        Object.assign(patch, {
+          stay, guest_count: list.length, guests: extra, total_amount: total,
+          accommodation: Object.entries(byRoom).map(([id, names]) => ({ id, people: names.length, names })),
+          payment_reference: (first + ' ' + last).slice(0, 40) + ' - ' + Object.keys(byRoom).map(id => rates[id].short).join(', '),
+        });
+      } else {
+        Object.assign(patch, { stay: null, guest_count: 1, guests: [], accommodation: [], total_amount: null, payment_reference: null });
+      }
+      const r = await fetch(base + '?id=eq.' + body.id, { method: 'PATCH', headers: { ...H, Prefer: 'return=representation' }, body: JSON.stringify(patch) });
+      if (!r.ok) return res.status(502).json({ error: 'Database error (' + r.status + '): ' + (await dbMessage(r)) });
+      const rows = await r.json();
+      if (!rows.length) return res.status(404).json({ error: 'RSVP not found.' });
+      return res.status(200).json({ row: rows[0] });
+    } catch (e) {
+      return res.status(502).json({ error: 'Could not reach the database: ' + (e && e.message ? e.message : e) });
+    }
+  }
   try {
     const r = await fetch(
       base + '?select=*&order=created_at.desc&limit=2000',
